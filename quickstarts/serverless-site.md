@@ -1,5 +1,7 @@
 # Serverless Static Website Quickstart
 
+> **Execution boundary:** These commands publish configuration or change AWS resources. Agents should prepare changes, validation, and plans; a human must separately authorize execution. Confirm the account, region, and environment and read the selected branches of `aws-config` and `aws-iac` for current CLI requirements. Agent safeguards are under review in [aws-iac PR #1](https://github.com/usekarma/aws-iac/pull/1) and [aws-config PR #1](https://github.com/usekarma/aws-config/pull/1); do not assume they are active on `main`.
+
 ![Serverless Static Website](../img/serverless-site.drawio.png)
 
 This guide walks you through deploying a fully serverless, secure static website using:
@@ -131,7 +133,7 @@ This will remove the deployed AWS resources but **will not delete** your config 
 
 ### 3. Deploy Static Website
 
-- See the [strall.com](https://github.com/usekarma/strall.com) repository for a static site example.
+- Use your own static-site repository for HTML/JS assets and its publishing workflow. The historical `strall.com` example repository is not publicly available; the commands below illustrate that repository layout.
 
 To publish your content:
 
@@ -183,9 +185,10 @@ aws-iac/
 
 - [`aws-iac`](https://github.com/usekarma/aws-iac) – Terraform modules  
 - [`aws-config`](https://github.com/usekarma/aws-config) – JSON-based configuration definitions  
-- [`strall.com`](https://github.com/usekarma/strall.com) – Example static site and publishing workflow  
+- Your static-site repository – Site assets and publishing workflow  
 
 ---
 
 [Back to Adage: AWS Deployment Framework ←](../README.md)
+
 

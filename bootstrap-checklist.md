@@ -69,4 +69,5 @@ Once this checklist is complete, your account is ready to deploy infrastructure 
 
 ---
 
-View all setup guides at [Adage: AWS Deployment Framework](../README.md)
+View all setup guides at [Adage: AWS Deployment Framework](./README.md)
+

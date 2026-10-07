@@ -23,7 +23,7 @@ This guide outlines common problems you might encounter when deploying a serverl
 
 **Fix:**
 1. Make sure you've configured your AWS CLI named profiles:
-   [AWS CLI Profile Setup](../setup/aws-cli-profiles.md)
+   [AWS CLI Profile Setup](./setup/aws-cli-profiles.md)
 2. Authenticate before using any `AWS_PROFILE`:
 
 ```sh
@@ -146,5 +146,6 @@ AWS_PROFILE=dev-iac ./scripts/deploy.sh route53-zone <nickname>
 
 ---
 
-Still stuck? [Open an issue](https://github.com/usekarma/adage/issues) or review the full [Quickstart Guide](./serverless-site.md).
+Still stuck? [Open an issue](https://github.com/usekarma/adage/issues) or review the full [Quickstart Guide](./quickstarts/serverless-site.md).
+
 

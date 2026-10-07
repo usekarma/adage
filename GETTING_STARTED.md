@@ -47,7 +47,7 @@ aws sso login --profile management
 
 For a deeper explanation of how and why Adage uses this login pattern, see:
 
-[Understanding the AWS Login Strategy →](./org-structure/aws-login-strategy.md)
+[Understanding the AWS Login Strategy →](./aws-login-strategy.md)
 
 ---
 
@@ -78,4 +78,5 @@ Once these steps are complete, you should validate your setup:
 Then you can deploy your first component:
 
 [Serverless Static Site Quickstart →](./quickstarts/serverless-site.md)
+
 

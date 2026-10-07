@@ -1,5 +1,7 @@
 # AWS Deployment Strategies
 
+> **Execution boundary:** These commands publish configuration or change AWS resources. Agents should prepare changes, validation, and plans; a human must separately authorize execution. Confirm the account, region, and environment and read the selected branches of `aws-config` and `aws-iac` for current CLI requirements. Agent safeguards are under review in [aws-iac PR #1](https://github.com/usekarma/aws-iac/pull/1) and [aws-config PR #1](https://github.com/usekarma/aws-config/pull/1); do not assume they are active on `main`.
+
 ## Table of Contents
 
 - [Deployment Overview](#deployment-overview)
@@ -81,3 +83,4 @@ Each component publishes its runtime info under a path like:
 ## External Component Interaction
 
 ![External Component Interaction](../img/deploy-config-external.drawio.png)
+

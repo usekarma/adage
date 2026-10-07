@@ -1,5 +1,7 @@
 # Serverless API Quickstart
 
+> **Execution boundary:** These commands publish configuration or change AWS resources. Agents should prepare changes, validation, and plans; a human must separately authorize execution. Confirm the account, region, and environment and read the selected branches of `aws-config` and `aws-iac` for current CLI requirements. Agent safeguards are under review in [aws-iac PR #1](https://github.com/usekarma/aws-iac/pull/1) and [aws-config PR #1](https://github.com/usekarma/aws-config/pull/1); do not assume they are active on `main`.
+
 ![Serverless API](../img/serverless-api.drawio.png)
 
 This guide walks you through deploying a serverless HTTP API using the `aws-openapi` and `aws-iac` repositories, following the Adage infrastructure model. You will:
@@ -168,3 +170,4 @@ aws-openapi/
 ---
 
 [Back to Adage Framework ←](../README.md)
+

@@ -1,138 +1,107 @@
-# Adage: A Configuration-Driven AWS Deployment Framework
+# Adage
 
-![Adage: A Configuration-Driven AWS Deployment Framework](./img/adage-system-diagram.png)
+**Configuration-driven AWS infrastructure evolving into an agent-ready engineering control plane.**
 
-> **New here?** Start with the [Getting Started guide](./GETTING_STARTED.md) and the [Serverless Site Quickstart](./quickstarts/serverless-site.md).
->
-> 💬 Have a question or feedback? [Start a discussion](https://github.com/usekarma/adage/discussions).
+Adage separates desired infrastructure state from reusable Terraform implementation and runtime metadata. It was designed around explicit configuration, composable components, dynamic dependency resolution, and controlled deployment. Those same properties make it well suited to autonomous engineering agents: agents can understand infrastructure, develop changes, verify them deterministically, and produce cost and risk evidence while consequential AWS execution remains under explicit human control.
 
-## Overview
+**Status:** The configuration-driven architecture exists. Agent safeguards are implemented in supporting pull requests under review. End-to-end cost reconciliation remains to be proven.
 
-This repository explains how to implement a **Configuration-Driven AWS Deployment Model**, allowing you to:
+New here? Start with [Getting Started](GETTING_STARTED.md) or the [Serverless Site Quickstart](quickstarts/serverless-site.md). Read [Agent-first evolution](docs/agent-first-evolution.md) for the evolving engineering model.
 
-- **Build AWS infrastructure once, then deploy dynamically via configuration updates**
-- **Separate infrastructure (IaC), configuration (JSON), and application code (Lambdas)**
-- **Resolve dependencies dynamically using AWS Parameter Store**
-- **Ensure security and auditability by managing deployments through Git**
+## Why Adage exists
 
----
+Cloud infrastructure should be explicit, declarative, decoupled, reusable, and understandable without tribal knowledge. Adage puts intent in configuration, implementation in reusable components, and dependency discovery in AWS Systems Manager Parameter Store (SSM). Explicit environment/account boundaries, Git-controlled changes, and predictable deployment interfaces reduce hidden coupling.
 
-## How the Repositories Work Together
+Adage was not originally designed for AI agents. It was designed to make cloud infrastructure explicit, composable, and controllable. Those same properties turned out to be what autonomous engineering agents need to reason safely about infrastructure. The [original design principles](design-principles/README.md) and [May 2025 repository history](https://github.com/usekarma/adage/commit/360597536ec4e283ee1d8f4aa9b0da377409ff49) document the architecture before this agent-first evolution.
 
-This model is composed of **three Git repositories** plus this documentation repo:
+## Architecture
 
-1. **[`aws-iac`](https://github.com/usekarma/aws-iac)** – Terraform modules for reusable AWS infrastructure
-2. **[`aws-config`](https://github.com/usekarma/aws-config)** – Git-controlled JSON config, synced to Parameter Store
-3. **[`aws-lambda`](https://github.com/usekarma/aws-lambda)** – Lambda functions that resolve their dependencies dynamically
+The infrastructure paths are established; the agent evidence loop and approval process describe the evolving workflow.
 
-This repository (**Adage**) provides a guided tour and design rationale for using them together.
-
----
-
-## Getting Started
-
-If this is your first time working in AWS with this system, start here: 👉 [Getting Started](./GETTING_STARTED.md)
-
-That guide walks you through creating a secure AWS account, enabling Identity Center, and setting up access. You’ll need that baseline in place before deploying infrastructure using this model.
-
----
-
-## Quickstart: Build Your Own Serverless Static Website
-
-Once your AWS account is bootstrapped and Identity Center is set up, follow this quickstart to deploy infrastructure for a serverless static site with CloudFront and S3:
-
-👉 [Serverless Static Website Quickstart](./quickstarts/serverless-site.md)
-
----
-
-## Deployment Flow
-
-### 1. Push Configuration to AWS Parameter Store
-
-Configuration is defined in `aws-config` and synced to Parameter Store using a CI/CD pipeline or script.
-
-```
-cd aws-config/
-./scripts/deploy.sh <component> <nickname>
+```mermaid
+flowchart TD
+    objective["Business / engineering objective"] --> agent["Agent: reason, build, verify"]
+    agent --> config["aws-config: desired state"]
+    agent --> iac["aws-iac: Terraform / Terragrunt"]
+    config -->|"Published configuration"| ssm["SSM: configuration and runtime bridge"]
+    ssm -->|"Inputs and dependencies"| iac
+    iac -->|"Plans and checks"| evidence["Verification: plans, cost, health, risk"]
+    aws["AWS: actual resources"] -->|"Read-only observations"| evidence
+    evidence --> approval["Human approval boundary"]
+    approval --> execution["Separately authorized execution"]
+    execution --> aws
+    execution -->|"Publish runtime metadata"| ssm
+    evidence -->|"Findings and revised objectives"| agent
 ```
 
-Each component finds its config under a path like:
+SSM stores `/iac/environment`, `/iac/<component>/<nickname>/config`, and `/iac/<component>/<nickname>/runtime` by convention; `IAC_PREFIX` can change the prefix. SSM bridges configuration and discovery; it does not replace Terraform state or AWS inventory.
 
-```
-/iac/<component>/<nickname>/config
-```
+## How the repositories fit together
 
-![Push Configuration to AWS Parameter Store](./img/deploy-config.drawio.png)
+| Part | Responsibility |
+| --- | --- |
+| **Adage** | Infrastructure control model: intent, reusable implementation, discovery, environments, and controlled deployment. |
+| [aws-config](https://github.com/usekarma/aws-config) | Desired state: environment bindings and component instances expected or allowed to exist. Publishes configuration to SSM. |
+| [aws-iac](https://github.com/usekarma/aws-iac) | Reusable Terraform/Terragrunt implementation that consumes configuration and publishes runtime metadata. |
+| **SSM Parameter Store** | Bridge between configuration, infrastructure deployment, and runtime dependency discovery. |
+| [aws-lambda](https://github.com/usekarma/aws-lambda) | Application functions and runtime integration where applicable. |
+| **Karma** | Real workload and proving ground for Adage's control model. |
+| [agent-business-solution-template](https://github.com/usekarma/agent-business-solution-template) | General methodology: objective → specification → agent work → deterministic verification → evidence → human release decision. Adage realizes these principles for infrastructure. |
 
-The contents of AWS Parameter Store defines what can be deployed in a given account.
+## Why this architecture works well with agents
 
-### 2. Deploy Using Terraform
+An agent can trace a declared instance to its implementation and dependency metadata, inspect Git history, and prepare bounded changes. Reusable components make new capabilities testable; explicit environments make targets reviewable. Plans and repeatable checks turn reasoning into evidence.
 
-In `aws-iac`, each component reads from AWS Parameter Store for configuration and writes its runtime outputs back to Parameter Store for other components to read:
+Configuration existence is a deployment prerequisite, **not proof of human approval**. Git review, IAM restrictions, credential separation, and execution gates must enforce authority. Runtime metadata may be stale; live observations remain necessary.
 
-```sh
-cd aws-iac/
-./scripts/deploy.sh <component> <nickname>
-```
+## Agent authority and human approval
 
-Each component publishes its runtime info under a path like:
+> Agents get broad authority in the reasoning and verification space, while humans retain authority over consequential execution.
 
-```
-/iac/<component>/<nickname>/runtime
-```
+Agents may inspect repositories/history and AWS read-only; modify code/configuration; build components; run tests, lint, and validation; generate plans; analyze cost and drift; prepare evidence and pull requests; and perform read-only post-change verification.
 
-![Deploy Using Terraform](./img/deploy-tf.drawio.png)
+Explicit human authorization remains required for production apply, destroy, persistent-data deletion (including EBS, snapshots, and databases), sensitive IAM or security-boundary changes, and irreversible operations. Publishing SSM configuration or changing environment bindings also requires authorization because it can affect subsequent deployment.
 
-➡️ [See AWS Deployment Strategies »](deployment/README.md)
+## Cost and desired-state reconciliation
 
----
+Cost is a measurable infrastructure objective. The experiment compares **desired state vs. actual AWS state vs. actual cost**, then explains discrepancies.
 
-## Core Design Principles
+| Deployment | Exact expected steady-state target |
+| --- | ---: |
+| strall.com | $0.51/month |
+| usekarma.dev | $0.61/month |
+| **Combined** | **$1.12/month** |
 
-This project is guided by a fabric of ideas that enable scalable, secure, and flexible AWS infrastructure.
+These are owner-specified targets, not verified current bills or guaranteed AWS pricing. Billing period, usage assumptions, shared charges, and attribution must be established by evidence.
 
-Each principle supports the others, forming a composable system where infrastructure, configuration, and services can evolve independently — yet always remain connected.
+> Explain every cent of AWS spend above the expected $1.12/month steady-state target, identify its infrastructure cause, map it back to desired state/IaC where possible, and produce a safe remediation plan without performing destructive changes.
 
-These principles include:
+## Karma as the proving ground
 
-- **Build Once, Deploy Anywhere** – Reusable Terraform components across all environments.
-- **Configuration Is the Source of Truth** – Git-controlled configs drive every deployment.
-- **Immutable Infrastructure** – Replace rather than patch, enabling reliable rollouts.
-- **Dynamic Dependency Resolution** – Services discover dependencies at runtime via nicknames.
-- **Separation of Concerns** – Infra, config, and app code live in independent repos.
-- **External System Referencing** – Reference systems you didn’t create as first-class citizens.
-- **Git as the Gatekeeper** – Only what’s defined in Git gets deployed.
-- **Optional Smart Caching** – Runtime refresh logic when failures occur.
-- **LocalStack-Friendly by Default** – Develop and test locally with minimal cost.
+Karma provides a concrete system for testing whether Adage can explain real resources, dependencies, drift, and spend. The two deployment targets make the experiment measurable. A successful result needs a traceable cost ledger, scoped inventory, reviewed remediation proposals, and explicit uncertainty. [Proof requirements](docs/agent-first-evolution.md#first-cost-proof) define the next experiment.
 
-➡️ [View the full explanation »](design-principles/README.md)
+## Current validation and proof status
 
----
+| Category | Evidence / status |
+| --- | --- |
+| Existing architecture | [Design principles](design-principles/README.md), [deployment documentation](deployment/README.md), and supporting config/IaC repositories. These describe the model; they do not certify every component. |
+| Agent work implemented, under review | [aws-iac PR #1](https://github.com/usekarma/aws-iac/pull/1) and [aws-config PR #1](https://github.com/usekarma/aws-config/pull/1): verification gates, target preflight, mutation guards, planning, and evidence workflow. These are not yet default-branch capabilities. |
+| General engineering methodology | [Template v2](https://github.com/usekarma/agent-business-solution-template): executable specs, quality gates, and readiness evidence. Passing template checks does not establish infrastructure readiness. |
+| Still being validated | Complete account/region inventory, resource-level billing attribution, target assumptions, and safe remediation plans. No complete public end-to-end cost proof is linked here yet. |
+| Future direction | Repeatable reconciliation, broader component coverage, and measured savings after separately authorized execution. |
 
-## Security & Compliance
+## Getting started
 
-- All changes must go through Git — providing version control and auditability
-- IAM permissions can restrict who can modify configuration vs. who can deploy
-- Parameter Store and Secrets Manager separate dynamic values from source code
+1. Follow [Getting Started](GETTING_STARTED.md) for AWS access and tooling, then [Validate Your Setup](validate_setup.md).
+2. Customize `aws-config` for your environments and select reusable components from `aws-iac`.
+3. Follow the [Serverless Site](quickstarts/serverless-site.md) or [Serverless API](quickstarts/serverless-api.md) quickstart and [deployment flow](deployment/README.md).
+4. For agent work, use the [evolving workflow and limitations](docs/agent-first-evolution.md). Read the target branch's instructions before running commands: deployment scripts can mutate AWS.
 
----
+## Deeper documentation
 
-## Next Steps
-
-Want to implement this in your AWS environment?
-
-1. **Fork and customize the three core repositories**
-2. **Set up a CI/CD pipeline to sync config to Parameter Store**
-3. **Define your IAM strategy and tag policies**
-4. **Deploy your first component using the quickstart**
-
----
-
-## Concepts & Further Reading
-
-- [Configuration-Driven Design Principles](./design-principles/README.md)
-- [Adaptive Runtime Behavior](./data-science/README.md) — How this architecture enables intelligent, self-adjusting systems
-
----
-
-Like this approach? Star the repo, follow along, or use it as a base for your own architecture.
+- [Design principles](design-principles/README.md) and [original system diagram](img/adage-system-diagram.png)
+- [Agent-first evolution and cost proof](docs/agent-first-evolution.md)
+- [Deployment strategies](deployment/README.md) and [adaptive runtime concepts](data-science/README.md)
+- [Account bootstrap](bootstrap-checklist.md), [organization structure](org-structure/README.md), and [login strategy](aws-login-strategy.md)
+- [Security baseline](security-baseline/README.md), [cross-account access](cross-account-access/README.md), [tagging](tagging-policy/README.md), and [cost management](cost-management/README.md)
+- [Troubleshooting](troubleshooting_common_issues.md)
